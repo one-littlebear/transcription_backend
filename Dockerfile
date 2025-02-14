@@ -11,27 +11,20 @@ RUN apt-get update && apt-get install -y \
 
 # Copy requirements first to leverage Docker cache
 COPY requirements.txt .
-
-# Install Python dependencies
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy the rest of the application
+# Copy application code
 COPY . .
 
 # Create temp directory
 RUN mkdir -p temp
 
-# Create non-root user
-RUN adduser --system --group app-user
-
-# Create and set permissions for temp directory
-RUN mkdir -p temp && chown -R app-user:app-user temp
-
-# Switch to non-root user
-USER app-user
+# Set environment variables
+ENV PYTHONUNBUFFERED=1
+ENV PORT=8000
 
 # Expose port
 EXPOSE 8000
 
-# Command to run the application
+# Run the application
 CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"] 

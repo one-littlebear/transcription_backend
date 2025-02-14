@@ -1,5 +1,40 @@
+# Git
 .git
 .gitignore
+
+# Docker
+Dockerfile
+docker-compose.yml
+.docker
+.dockerignore
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+.env
+*.egg-info/
+dist/
+build/
+
+# IDE
+.vscode/
+.idea/
+
+# Temporary files
+temp/
+*.mp3
+*.mp4
+*.wav
+*.docx
+
+# Logs
+*.log
+
 .env
 __pycache__
 *.pyc
@@ -21,5 +56,4 @@ coverage.xml
 *.log
 .pytest_cache/
 .env.example
-README.md
-temp/ 
+README.md 

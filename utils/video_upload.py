@@ -21,9 +21,9 @@ class UploadResponse(BaseModel):
     cleaned_filename: str
 
 class UploadStatus(BaseModel):
-    filename: str
     status: str
-    transcript_url: Optional[str] = None
+    message: str
+    transcript_url: str | None = None
 
 def clean_filename(filename: str) -> str:
     """
@@ -99,7 +99,7 @@ def check_file_status(filename: str) -> UploadStatus:
         transcript_name = f"{filename}_cleaned.docx"
         
         if any(blob.name == transcript_name for blob in transcript_container.list_blobs()):
-            # Get transcript URL
+            # Get transcript URL with SAS token
             transcript_blob = transcript_container.get_blob_client(transcript_name)
             sas_token = generate_blob_sas(
                 account_name=blob_service_client.account_name,
@@ -111,8 +111,8 @@ def check_file_status(filename: str) -> UploadStatus:
             )
             transcript_url = f"{transcript_blob.url}?{sas_token}"
             return UploadStatus(
-                filename=filename,
                 status="completed",
+                message="File processed successfully",
                 transcript_url=transcript_url
             )
         
@@ -120,13 +120,13 @@ def check_file_status(filename: str) -> UploadStatus:
         video_container = blob_service_client.get_container_client("video-uploads")
         if any(blob.name == filename for blob in video_container.list_blobs()):
             return UploadStatus(
-                filename=filename,
-                status="processing"
+                status="processing",
+                message="File is being processed"
             )
             
         return UploadStatus(
-            filename=filename,
-            status="not_found"
+            status="not_found",
+            message="File not found"
         )
         
     except Exception as e:
