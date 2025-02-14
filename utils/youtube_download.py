@@ -65,6 +65,6 @@ def download_video(url, output_path="videos"):
 
 if __name__ == "__main__":
     # Example usage
-    video_url = "https://www.youtube.com/watch?v=IFvLorAL5-8"
+    video_url = "https://www.youtube.com/watch?v=S7Rl6XgkWUg"
     download_video(video_url)
     pass

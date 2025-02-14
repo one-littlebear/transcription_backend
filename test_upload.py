@@ -111,7 +111,7 @@ if __name__ == "__main__":
             asyncio.run(test_api_endpoints())
             
             # Then process the video
-            video_path = "videos/FULL SPEECH： President Donald Trump's inauguration speech.mp4"
+            video_path = "videos/Pistorius counters Vance： Criticism of democracy is not acceptable ｜ BR24.mp4"
             if os.path.exists(video_path):
                 process_video(video_path)
             else:

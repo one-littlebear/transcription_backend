@@ -216,8 +216,11 @@ class VideoProcessor:
             try:
                 await asyncio.get_event_loop().run_in_executor(
                     self.executor,
-                    lambda: self.blob_service_client.get_container_client(self.containers['video-uploads']).delete_blob(video_name)
+                    lambda: self.blob_service_client.get_container_client(
+                        self.containers['videos']
+                    ).delete_blob(video_name)
                 )
+                logger.info(f"Successfully deleted blob: {video_name}")
             except Exception as e:
                 logger.error(f"Error cleaning up blob: {e}")
 
