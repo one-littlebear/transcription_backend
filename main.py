@@ -1,4 +1,5 @@
 import logging
+from fastapi import FastAPI, HTTPException, BackgroundTasks, File, UploadFile
 from moviepy import VideoFileClip
 from pathlib import Path
 from openai import OpenAI
@@ -10,9 +11,11 @@ from concurrent.futures import ThreadPoolExecutor
 from functools import partial
 import time
 import math
-from typing import Optional
+from typing import Optional, List
 from azure.storage.blob import BlobServiceClient, ContainerClient
 from azure.core.exceptions import ResourceExistsError
+from pydantic import BaseModel
+from utils.video_upload import generate_sas_token, check_file_status, UploadResponse, UploadStatus
 
 # Set up logging configuration
 logging.basicConfig(
@@ -23,6 +26,16 @@ logging.basicConfig(
     ]
 )
 logger = logging.getLogger(__name__)
+
+app = FastAPI(
+    title="Video Processing API",
+    description="API for processing videos, extracting audio, and generating transcriptions",
+    version="1.0.0"
+)
+
+class ProcessingStatus(BaseModel):
+    status: str
+    message: str
 
 def extract_audio(video_path, output_path):
     """Extract audio from video file and save as MP3."""
@@ -199,23 +212,80 @@ def process_video(video_name, client, blob_service_client, containers):
         logger.error(f"Error processing video {video_name}: {e}")
         return False
 
-def main():
-    logger.info("Starting video processing script")
-    client = OpenAI()
+@app.on_event("startup")
+async def startup_event():
+    """Initialize services on startup"""
+    logger.info("Initializing services...")
+    # Create temp directory if it doesn't exist
+    temp_dir = Path("temp")
+    temp_dir.mkdir(exist_ok=True)
+
+@app.get("/", response_model=dict)
+async def root():
+    """Root endpoint to check if the API is running"""
+    return {"status": "running", "message": "Video processing API is operational"}
+
+@app.get("/videos", response_model=List[str])
+async def list_videos():
+    """List all available videos in Azure Storage"""
+    try:
+        blob_service_client = get_blob_service_client()
+        containers = ensure_containers(blob_service_client)
+        videos = list_videos_in_container(blob_service_client, containers['videos'])
+        return [video.name for video in videos]
+    except Exception as e:
+        logger.error(f"Error listing videos: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/process/{video_name}", response_model=ProcessingStatus)
+async def process_video_endpoint(video_name: str, background_tasks: BackgroundTasks):
+    """
+    Start processing a video
+    """
+    try:
+        client = OpenAI()
+        blob_service_client = get_blob_service_client()
+        containers = ensure_containers(blob_service_client)
+        
+        # Check if video exists
+        video_container = blob_service_client.get_container_client(containers['videos'])
+        if not any(b.name == video_name for b in video_container.list_blobs()):
+            raise HTTPException(status_code=404, detail="Video not found")
+        
+        # Add processing to background tasks
+        background_tasks.add_task(
+            process_video,
+            video_name,
+            client,
+            blob_service_client,
+            containers
+        )
+        
+        return {
+            "status": "processing",
+            "message": f"Processing of {video_name} started"
+        }
     
-    # Initialize Azure Storage
-    blob_service_client = get_blob_service_client()
-    containers = ensure_containers(blob_service_client)
-    
-    # List videos directly from Azure Storage
-    video_files = list_videos_in_container(blob_service_client, containers['videos'])
-    logger.info(f"Found {len(video_files)} MP4 files to process in Azure Storage")
-    
-    for video_blob in video_files:
-        logger.info(f"\nProcessing {video_blob.name}...")
-        process_video(video_blob.name, client, blob_service_client, containers)
-    
-    logger.info("Video processing completed")
+    except Exception as e:
+        logger.error(f"Error initiating video processing: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/upload/request", response_model=UploadResponse)
+async def request_upload(filename: str):
+    """Get a pre-signed URL for uploading a video file"""
+    try:
+        return generate_sas_token(filename)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/upload/status/{filename}", response_model=UploadStatus)
+async def get_upload_status(filename: str):
+    """Check the status of a video upload and processing"""
+    try:
+        return check_file_status(filename)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 if __name__ == "__main__":
-    main()
+    import uvicorn
+    uvicorn.run(app, host="0.0.0.0", port=8000)
