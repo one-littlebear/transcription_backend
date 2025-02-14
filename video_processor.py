@@ -14,6 +14,7 @@ import math
 import os
 import asyncio
 from utils.cleanup import split_into_sentences
+import io
 
 # Set up logging
 logging.basicConfig(
@@ -46,7 +47,6 @@ class VideoProcessor:
         """Ensure required containers exist."""
         containers = {
             'videos': 'video-uploads',
-            'audio': 'audio-temp',
             'transcripts': 'transcriptions'
         }
         
@@ -101,107 +101,106 @@ class VideoProcessor:
         """Process a single video file from Azure Storage."""
         temp_files = []
         try:
-            # Setup container clients and temp directory
-            video_container = self.blob_service_client.get_container_client(self.containers['videos'])
-            audio_container = self.blob_service_client.get_container_client(self.containers['audio'])
+            start_time = time.time()
+            
+            # Setup paths
             temp_dir = Path("temp")
             temp_dir.mkdir(exist_ok=True)
-            
-            # Create temp paths
             temp_video_path = temp_dir / video_name
-            temp_audio_path = temp_video_path.with_suffix('.mp3')
+            temp_audio_path = temp_dir / f"{video_name}.mp3"
             temp_files.extend([temp_video_path, temp_audio_path])
 
-            # Download video (I/O operation, can be async)
-            logger.info(f"Processing video: {video_name}")
-            video_data = await asyncio.get_event_loop().run_in_executor(
-                self.executor,
-                lambda: video_container.download_blob(video_name).readall()
-            )
+            # Download video
+            download_start = time.time()
+            logger.info(f"Starting download of video: {video_name}")
+            blob_client = self.blob_service_client.get_container_client(
+                self.containers['videos']).get_blob_client(video_name)
             
-            await asyncio.get_event_loop().run_in_executor(
-                self.executor,
-                lambda: temp_video_path.write_bytes(video_data)
-            )
+            with open(temp_video_path, "wb") as video_file:
+                download_stream = await asyncio.get_event_loop().run_in_executor(
+                    self.executor,
+                    blob_client.download_blob
+                )
+                await asyncio.get_event_loop().run_in_executor(
+                    self.executor,
+                    lambda: download_stream.readinto(video_file)
+                )
+            logger.info(f"Download took {time.time() - download_start:.2f} seconds")
 
-            # Extract audio (CPU-bound, run in thread pool)
-            if not await asyncio.get_event_loop().run_in_executor(
-                self.executor,
-                self.extract_audio,
-                str(temp_video_path),
-                str(temp_audio_path)
-            ):
-                return False
+            # Extract audio
+            extract_start = time.time()
+            logger.info("Starting audio extraction")
+            video = VideoFileClip(str(temp_video_path))
+            video.audio.write_audiofile(str(temp_audio_path))
+            video.close()
+            logger.info(f"Audio extraction took {time.time() - extract_start:.2f} seconds")
 
-            # Upload audio (I/O operation)
-            audio_data = await asyncio.get_event_loop().run_in_executor(
-                self.executor,
-                lambda: temp_audio_path.read_bytes()
-            )
+            # Split and transcribe
+            split_start = time.time()
+            audio = AudioSegment.from_mp3(temp_audio_path)
+            chunk_length = 5 * 60 * 1000  # 5 minutes
+            chunks = []
             
-            await asyncio.get_event_loop().run_in_executor(
-                self.executor,
-                lambda: audio_container.upload_blob(temp_audio_path.name, audio_data, overwrite=True)
-            )
-
-            # Split audio (CPU-bound)
-            audio_chunks = await asyncio.get_event_loop().run_in_executor(
-                self.executor,
-                self.split_audio,
-                temp_audio_path
-            )
-            temp_files.extend(audio_chunks)
-
-            # Transcribe chunks (I/O bound, can be parallel)
-            transcribe_tasks = []
-            for chunk_path in audio_chunks:
-                task = self.transcribe_with_retry(chunk_path, client)
-                transcribe_tasks.append(task)
+            # Create chunks
+            for i in range(0, len(audio), chunk_length):
+                chunk_path = temp_dir / f"chunk_{i//chunk_length}.mp3"
+                audio[i:i + chunk_length].export(chunk_path, format="mp3")
+                chunks.append(chunk_path)
+                temp_files.append(chunk_path)
             
+            logger.info(f"Split into {len(chunks)} chunks")
+
+            # Transcribe chunks in parallel
+            sem = asyncio.Semaphore(10)  # Increased concurrent API calls
+            
+            async def transcribe_chunk(chunk_path):
+                async with sem:
+                    return await self.transcribe_with_retry(chunk_path, client)
+
+            # Create and run tasks in parallel
+            transcribe_tasks = [transcribe_chunk(chunk) for chunk in chunks]
+            logger.info(f"Starting parallel transcription of {len(chunks)} chunks")
             results = await asyncio.gather(*transcribe_tasks)
+            logger.info("Completed all transcriptions")
             full_transcript = [t for t in results if t is not None]
 
+            # Create and upload document
             if full_transcript:
-                # Create document
-                transcript_container = self.blob_service_client.get_container_client(self.containers['transcripts'])
-                output_filename = f"{video_name}_cleaned.docx"
-                
-                # Create document in memory
-                doc = await asyncio.get_event_loop().run_in_executor(
-                    self.executor,
-                    self._create_document,
-                    full_transcript
-                )
-                
-                # Save temporarily and upload
-                temp_doc_path = Path("temp_doc.docx")
-                temp_files.append(temp_doc_path)
-                await asyncio.get_event_loop().run_in_executor(
-                    self.executor,
-                    doc.save,
-                    str(temp_doc_path)
-                )
+                doc = Document()
+                text = '\n'.join(full_transcript)
+                sentences = split_into_sentences(text)
+                for sentence in sentences:
+                    doc.add_paragraph(sentence)
 
-                doc_data = await asyncio.get_event_loop().run_in_executor(
-                    self.executor,
-                    lambda: temp_doc_path.read_bytes()
-                )
+                output_filename = f"{video_name}_cleaned.docx"
+                doc.save(str(temp_dir / output_filename))
                 
-                await asyncio.get_event_loop().run_in_executor(
-                    self.executor,
-                    lambda: transcript_container.upload_blob(output_filename, doc_data, overwrite=True)
-                )
+                with open(temp_dir / output_filename, 'rb') as doc_file:
+                    await asyncio.get_event_loop().run_in_executor(
+                        self.executor,
+                        lambda: self.blob_service_client.get_container_client(
+                            self.containers['transcripts']
+                        ).upload_blob(output_filename, doc_file, overwrite=True)
+                    )
 
             # Cleanup
-            await self._cleanup_files(temp_files, video_name, temp_audio_path.name)
+            for temp_file in temp_files:
+                if temp_file.exists():
+                    temp_file.unlink()
+
+            total_time = time.time() - start_time
+            logger.info(f"Total processing time: {total_time:.2f} seconds")
             return True
 
         except Exception as e:
-            logger.error(f"Error processing video {video_name}: {e}")
-            await self._cleanup_files(temp_files)
+            logger.error(f"Error processing video: {e}")
+            # Cleanup on error
+            for temp_file in temp_files:
+                if isinstance(temp_file, Path) and temp_file.exists():
+                    temp_file.unlink()
             return False
 
-    async def _cleanup_files(self, temp_files, video_name=None, audio_name=None):
+    async def _cleanup_files(self, temp_files, video_name=None):
         """Clean up temporary files and blobs."""
         for temp_file in temp_files:
             try:
@@ -213,18 +212,14 @@ class VideoProcessor:
             except Exception as e:
                 logger.error(f"Error cleaning up {temp_file}: {e}")
 
-        if video_name and audio_name:
+        if video_name:
             try:
                 await asyncio.get_event_loop().run_in_executor(
                     self.executor,
-                    lambda: self.blob_service_client.get_container_client(self.containers['videos']).delete_blob(video_name)
-                )
-                await asyncio.get_event_loop().run_in_executor(
-                    self.executor,
-                    lambda: self.blob_service_client.get_container_client(self.containers['audio']).delete_blob(audio_name)
+                    lambda: self.blob_service_client.get_container_client(self.containers['video-uploads']).delete_blob(video_name)
                 )
             except Exception as e:
-                logger.error(f"Error cleaning up blobs: {e}")
+                logger.error(f"Error cleaning up blob: {e}")
 
     def _create_document(self, transcript_list):
         """Create a Word document from transcripts"""
@@ -237,16 +232,23 @@ class VideoProcessor:
 
     async def transcribe_with_retry(self, audio_path: Path, client: OpenAI, max_retries: int = 3) -> Optional[str]:
         """Async version of transcribe with retry"""
+        async def _transcribe():
+            logger.info(f"Starting transcription of {audio_path}")
+            # Run the OpenAI API call in the thread pool
+            result = await asyncio.get_event_loop().run_in_executor(
+                self.executor,
+                lambda: client.audio.transcriptions.create(
+                    model="whisper-1",
+                    file=open(audio_path, "rb"),
+                    response_format="text"
+                )
+            )
+            logger.info(f"Completed transcription of {audio_path}")
+            return result
+
         for attempt in range(max_retries):
             try:
-                transcript = await asyncio.get_event_loop().run_in_executor(
-                    self.executor,
-                    lambda: client.audio.transcriptions.create(
-                        model="whisper-1",
-                        file=audio_path.open("rb"),
-                        response_format="text"
-                    )
-                )
+                transcript = await _transcribe()
                 return transcript
             except Exception as e:
                 logger.warning(f"Attempt {attempt + 1} failed for {audio_path}: {e}")
@@ -262,9 +264,9 @@ class VideoProcessor:
 
 # Add this test section at the end of the file
 if __name__ == "__main__":
-    """
     import os
     from dotenv import load_dotenv
+    import asyncio
     
     # Load environment variables
     load_dotenv()
@@ -275,7 +277,7 @@ if __name__ == "__main__":
     # Initialize video processor
     processor = VideoProcessor()
     
-    def test_video_processing():
+    async def test_video_processing():
         '''Test the video processing pipeline'''
         try:
             # List available videos
@@ -303,8 +305,8 @@ if __name__ == "__main__":
             video_name = videos[choice]
             print(f"\nProcessing video: {video_name}")
             
-            # Process the video
-            success = processor.process_video(video_name, client)
+            # Process the video - now with await
+            success = await processor.process_video(video_name, client)
             
             if success:
                 print(f"\nSuccessfully processed {video_name}")
@@ -315,9 +317,8 @@ if __name__ == "__main__":
         except Exception as e:
             print(f"Error during testing: {e}")
     
-    # Run the test
+    # Run the test with asyncio
     print("Video Processing Test Tool")
     print("=========================")
-    test_video_processing() 
-    """
-    pass
+    asyncio.run(test_video_processing()) 
+
