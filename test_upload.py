@@ -57,7 +57,7 @@ def test_video_processing(api_url, video_path):
             break
 
 if __name__ == "__main__":
-    API_URL = "http://localhost:8000"
-    VIDEO_PATH = "videos/test_3.mp4"  # Replace with your video path
+    API_URL = "https://transcription-backend.livelywater-0798357b.germanywestcentral.azurecontainerapps.io"
+    VIDEO_PATH = "videos/NVIDIA BUSTED Devin with DEEPSEEK R1!!!.mp4"  # Replace with your video path
     
     test_video_processing(API_URL, VIDEO_PATH) 

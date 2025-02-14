@@ -21,8 +21,17 @@ COPY . .
 # Create temp directory
 RUN mkdir -p temp
 
-# Expose port
-EXPOSE 8000
+# Create non-root user
+RUN adduser --system --group app-user
+
+# Create and set permissions for temp directory
+RUN mkdir -p temp && chown -R app-user:app-user temp
+
+# Switch to non-root user
+USER app-user
+
+# Expose standard HTTP port
+EXPOSE 80
 
 # Command to run the application
-CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"] 
+CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "80"] 
