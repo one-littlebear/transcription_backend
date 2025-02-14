@@ -58,6 +58,6 @@ def test_video_processing(api_url, video_path):
 
 if __name__ == "__main__":
     API_URL = "https://transcription-backend.livelywater-0798357b.germanywestcentral.azurecontainerapps.io"
-    VIDEO_PATH = "videos/NVIDIA BUSTED Devin with DEEPSEEK R1!!!.mp4"  # Replace with your video path
+    VIDEO_PATH = "videos/Negotiation_skills_for_startup_founders.mp4"  # Replace with your video path
     
     test_video_processing(API_URL, VIDEO_PATH) 

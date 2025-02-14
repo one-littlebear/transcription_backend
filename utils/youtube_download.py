@@ -1,5 +1,23 @@
 import yt_dlp
 import os
+import re
+
+def clean_title(title):
+    """
+    Cleans up video title by removing emojis, extra whitespace, and special characters.
+    
+    Args:
+        title (str): The original video title
+    Returns:
+        str: Cleaned up title
+    """
+    # Remove emojis and special characters
+    title = re.sub(r'[^\w\s-]', '', title)
+    # Replace multiple spaces with single space and strip
+    title = ' '.join(title.split())
+    # Replace spaces with underscores
+    title = title.replace(' ', '_')
+    return title
 
 def download_video(url, output_path="videos"):
     """
@@ -14,7 +32,7 @@ def download_video(url, output_path="videos"):
         if not os.path.exists(output_path):
             os.makedirs(output_path)
             
-        # Configure yt-dlp options
+        # Configure yt-dlp options with custom output template
         ydl_opts = {
             'format': 'best',  # Download best quality
             'outtmpl': f'{output_path}/%(title)s.%(ext)s',  # Output template
@@ -24,12 +42,21 @@ def download_video(url, output_path="videos"):
         # Create a yt-dlp object and download the video
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
             # Get video info first
-            info = ydl.extract_info(url, download=False)
-            print(f"Downloading: {info['title']}")
-            print(f"Quality: {info['format']}") if 'format' in info else None
+            info = ydl.extract_info(url, download=True)
             
-            # Download the video
-            ydl.download([url])
+            # Get the original filename and extension
+            original_title = info['title']
+            ext = info['ext']
+            original_path = os.path.join(output_path, f"{original_title}.{ext}")
+            
+            # Create new filename with cleaned title
+            cleaned_title = clean_title(original_title)
+            new_path = os.path.join(output_path, f"{cleaned_title}.{ext}")
+            
+            # Rename the file
+            if os.path.exists(original_path):
+                os.rename(original_path, new_path)
+                print(f"File renamed to: {cleaned_title}.{ext}")
             
         print(f"\nDownload completed! Video saved to: {output_path}")
         
@@ -38,5 +65,6 @@ def download_video(url, output_path="videos"):
 
 if __name__ == "__main__":
     # Example usage
-    video_url = "https://www.youtube.com/watch?v=mM4NWS3o2Lo"
-    download_video(video_url)
+    #video_url = "https://www.youtube.com/watch?v=zWecbmgHNVY"
+    #download_video(video_url)
+    pass

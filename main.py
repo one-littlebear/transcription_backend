@@ -127,8 +127,10 @@ def list_videos_in_container(blob_service_client, container_name):
 
 def process_video(video_name, client, blob_service_client, containers):
     """Process a single video file directly from Azure Storage."""
+    temp_files = []  # Keep track of all temporary files
     try:
         # Get container clients
+        logger.info(f"Starting video processing pipeline for: {video_name}")
         video_container = blob_service_client.get_container_client(containers['videos'])
         audio_container = blob_service_client.get_container_client(containers['audio'])
         
@@ -137,37 +139,47 @@ def process_video(video_name, client, blob_service_client, containers):
         temp_dir.mkdir(exist_ok=True)
         temp_video_path = temp_dir / video_name
         temp_audio_path = temp_video_path.with_suffix('.mp3')
+        temp_files.extend([temp_video_path, temp_audio_path])
         
         # Download video for processing
-        logger.info(f"Downloading video: {video_name}")
+        logger.info(f"Downloading video from Azure Storage: {video_name}")
         with open(temp_video_path, "wb") as video_file:
             video_file.write(video_container.download_blob(video_name).readall())
+        logger.info(f"Video download completed: {video_name}")
         
-        logger.info(f"Starting processing of {video_name}")
-        logger.info(f"Extracting audio...")
+        logger.info(f"Starting audio extraction from video: {video_name}")
         if not extract_audio(str(temp_video_path), str(temp_audio_path)):
+            logger.error(f"Audio extraction failed for: {video_name}")
             return False
+        logger.info(f"Audio extraction completed: {video_name}")
             
         # Upload audio for tracking
+        logger.info(f"Uploading extracted audio to Azure Storage: {temp_audio_path.name}")
         with temp_audio_path.open('rb') as audio_file:
             audio_container.upload_blob(temp_audio_path.name, audio_file, overwrite=True)
+        logger.info(f"Audio upload completed: {temp_audio_path.name}")
         
-        logger.info("Splitting audio into 10-minute chunks...")
+        # Keep track of audio chunks for cleanup
+        logger.info(f"Starting audio splitting into 10-minute chunks: {video_name}")
         audio_chunks = split_audio(temp_audio_path)
+        temp_files.extend(audio_chunks)  # Add chunks to cleanup list
+        logger.info(f"Created {len(audio_chunks)} audio chunks for processing")
         
+        logger.info("Starting transcription of audio chunks...")
         full_transcript = []
         with ThreadPoolExecutor(max_workers=5) as executor:
             transcribe_func = partial(transcribe_with_retry, client=client)
             results = list(executor.map(transcribe_func, audio_chunks))
             
             full_transcript = [t for t in results if t is not None]
+            logger.info(f"Transcription completed: {len(full_transcript)} chunks successfully transcribed")
             
             for chunk_path in audio_chunks:
                 os.remove(chunk_path)
-                logger.debug(f"Removed chunk file: {chunk_path}")
         
         if full_transcript:
             # Save transcript to Azure
+            logger.info("Creating Word document from transcription...")
             transcript_container = blob_service_client.get_container_client(containers['transcripts'])
             output_filename = f"{video_name}_cleaned.docx"
             
@@ -179,37 +191,61 @@ def process_video(video_name, client, blob_service_client, containers):
             
             # Save locally temporarily
             temp_doc_path = Path("temp_doc.docx")
+            temp_files.append(temp_doc_path)  # Add doc to cleanup list
             doc.save(str(temp_doc_path))
             
             # Upload to Azure
+            logger.info(f"Uploading transcript document to Azure Storage: {output_filename}")
             with temp_doc_path.open('rb') as doc_file:
                 transcript_container.upload_blob(output_filename, doc_file, overwrite=True)
+            logger.info(f"Transcript upload completed: {output_filename}")
             
-            # Clean up local temp file
-            temp_doc_path.unlink()
-            logger.info(f"Transcription saved to Azure: {output_filename}")
-        
-        # Clean up all temporary files and Azure blobs
-        temp_video_path.unlink()
-        temp_audio_path.unlink()
-        logger.debug("Cleaned up local temporary files")
+            # Enhanced cleanup process
+            logger.info("Starting cleanup process...")
             
-        # Clean up from Azure Storage
-        audio_container.delete_blob(temp_audio_path.name)
-        logger.debug(f"Cleaned up Azure audio file: {temp_audio_path.name}")
+            # Clean up all temporary local files
+            for temp_file in temp_files:
+                try:
+                    if temp_file.exists():
+                        temp_file.unlink()
+                        logger.info(f"Removed temporary file: {temp_file}")
+                except Exception as e:
+                    logger.error(f"Error removing temporary file {temp_file}: {e}")
+            
+            # Clean up from Azure Storage
+            try:
+                audio_container.delete_blob(temp_audio_path.name)
+                logger.info(f"Removed audio blob: {temp_audio_path.name}")
+            except Exception as e:
+                logger.error(f"Error removing audio blob {temp_audio_path.name}: {e}")
+            
+            try:
+                video_container.delete_blob(video_name)
+                logger.info(f"Removed video blob: {video_name}")
+            except Exception as e:
+                logger.error(f"Error removing video blob {video_name}: {e}")
+            
+            # Remove temp directory if empty
+            try:
+                if temp_dir.exists() and not any(temp_dir.iterdir()):
+                    temp_dir.rmdir()
+                    logger.info("Removed empty temp directory")
+            except Exception as e:
+                logger.error(f"Error removing temp directory: {e}")
         
-        video_container.delete_blob(video_name)
-        logger.debug(f"Cleaned up Azure video file: {video_name}")
-        
-        # Remove temp directory if empty
-        if not any(temp_dir.iterdir()):
-            temp_dir.rmdir()
-            logger.debug("Removed temporary directory")
-        
+        logger.info(f"Video processing completed successfully for: {video_name}")
         return True
 
     except Exception as e:
         logger.error(f"Error processing video {video_name}: {e}")
+        # Attempt cleanup even if processing failed
+        for temp_file in temp_files:
+            try:
+                if temp_file.exists():
+                    temp_file.unlink()
+                    logger.info(f"Cleaned up temporary file after error: {temp_file}")
+            except Exception as cleanup_error:
+                logger.error(f"Error during cleanup of {temp_file}: {cleanup_error}")
         return False
 
 @app.on_event("startup")
