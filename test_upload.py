@@ -10,12 +10,15 @@ from pathlib import Path
 load_dotenv()
 
 # API endpoint (local FastAPI server)
-BASE_URL = "http://localhost:8000"
+BASE_URL = "https://transcription-backend.livelywater-0798357b.germanywestcentral.azurecontainerapps.io"
+
+# Configure httpx client with longer timeouts
+client = httpx.Client(timeout=10.0)  # 30 seconds timeout
 
 async def test_api_endpoints():
     """Test basic API endpoints without file processing"""
     try:
-        async with httpx.AsyncClient() as client:
+        async with httpx.AsyncClient(timeout=10.0) as client:  # Increased timeout
             # Test root endpoint
             print("\nTesting root endpoint...")
             response = await client.get(f"{BASE_URL}/")
@@ -31,6 +34,8 @@ async def test_api_endpoints():
             for video in videos:
                 print(f"- {video}")
 
+    except httpx.TimeoutException:
+        print("Error: API endpoints timed out")
     except Exception as e:
         print(f"Error during API testing: {e}")
 
@@ -104,22 +109,30 @@ if __name__ == "__main__":
     
     # First, check if server is running and test basic endpoints
     try:
-        response = httpx.get(f"{BASE_URL}/")
+        print("Checking server status...")
+        response = client.get(f"{BASE_URL}/")
         if response.status_code == 200:
             print("✅ Server is running!")
             # Run the API endpoint tests
             asyncio.run(test_api_endpoints())
             
             # Then process the video
-            video_path = "videos/Pistorius counters Vance： Criticism of democracy is not acceptable ｜ BR24.mp4"
+            video_path = "videos/Erschöpfte Willkommenskultur in Deutschland ｜ ZDF.reportage.mp4"
             if os.path.exists(video_path):
                 process_video(video_path)
             else:
                 print(f"❌ Video file not found: {video_path}")
         else:
             print("❌ Server returned unexpected status code:", response.status_code)
+    except httpx.TimeoutException:
+        print("❌ Error: Server took too long to respond.")
+        print("The Azure Container App might be cold starting or under heavy load.")
     except httpx.ConnectError:
         print("❌ Error: Could not connect to the server.")
-        print("Please make sure the FastAPI server is running (python main.py)") 
+        print("Please check if the Azure Container App is running and accessible.")
+    except Exception as e:
+        print(f"❌ Unexpected error: {str(e)}")
+    finally:
+        client.close()
         
     print("===================") 
