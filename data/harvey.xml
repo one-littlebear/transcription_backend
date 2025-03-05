@@ -1,0 +1,233 @@
+<transcript>
+  <turn speaker="Host">
+    <paragraph>Hi, listeners, and welcome back to No Priors. Today I'm here with Winston Weinberg, the co-founder and CEO of Harvey, which is building domain‐specific AI for law, professional services, and the Fortune 500. They've now raised more than $500 million from investors such as OpenAI, Sequoia, Kleiner Perkins, GV, Bloodgill, and me. We're going to talk about how to do end-to-end workflows, how to serve conservative users, imposter syndrome, keeping pace with the blitz of the AI ecosystem, and also what lawyers will do five years from now. Winston, thanks for doing this.</paragraph>
+  </turn>
+  <turn speaker="Winston">
+    <paragraph>Yeah, of course.</paragraph>
+  </turn>
+  <turn speaker="Host">
+    <paragraph>It has been like a wild two and a half years for you and Gabe and Harvey. When you started the company in August of 2022, or at least when I met you guys for the seed.</paragraph>
+  </turn>
+  <turn speaker="Winston">
+    <paragraph>Yeah, we started a little bit earlier, but about then. What was the moment of inspiration?</paragraph>
+  </turn>
+  <turn speaker="Winston">
+    <paragraph>Yeah, so Gabe and I actually had met a couple years before, and I definitely didn't know anything about the startup world and didn't have a plan of doing a startup. And what had happened was he showed me GPT‑3, which at the time was public. And I was, first of all, just incredibly surprised that no one was talking about GPT‑3 and no one was using it in any way, shape, or form. And he showed me that, and I showed him kind of my legal workflows. And we started—the kind of aha moment was we went on r/legaladvice, which is basically a subreddit where people ask a bunch of legal questions, and almost every single answer is, “So who do I sue?” almost every single time. And we took about 100 landlord–tenant questions, and we came up with kind of some chain-of-thought prompts. And this is before anyone was talking about chain of thought or anything like that. And we applied it to those landlord–tenant questions, and we gave it to three landlord–tenant attorneys. And we just said, “Nothing about AI. We just say, here's a question that a potential client asked, and here is an answer. Would you send this answer without any edits to that client? Would you be fine with that? Is that ethical? Is it a good enough answer to send?” And 86 out of 100 was yes. And actually, we cold emailed the general counsel of OpenAI, and we sent him these results. And his response basically was, “Oh, I had no idea the models were this good at legal.” And we met with the C‑suite of OpenAI a couple of weeks after. And the view was just, “It's going to be good enough. We should build a company around it.”</paragraph>
+  </turn>
+  <turn speaker="Host">
+    <paragraph>Yeah. For what domains?</paragraph>
+  </turn>
+  <turn speaker="Winston">
+    <paragraph>I mean, I think what happened—or the reason we were so confident about this—was the models, and even with GPT‑3, you could get it to do a lot of tasks; you just had to really brute force it, right? Like you had to brute force the amount of context, telling it which steps to take, etc. And the idea was, over time, this is just going to get better, right? They're going to be, either the models themselves are going to get better, or we're going to get better over time at figuring out how to provide them the correct context, how to improve them, how to evaluate the results, etc. And even just by playing with it for a decent amount of time, you could get that sense.</paragraph>
+  </turn>
+  <turn speaker="Host">
+    <paragraph>You are obviously not focused just on property law now. How do you think about the mission or scope of Harvey today?</paragraph>
+  </turn>
+  <turn speaker="Winston">
+    <paragraph>Yeah. So mostly we're developing it for legal overall, but I would say that what we're building is the AI platform for legal and professional services, right? And if that sounds vague, or it sounds like there aren’t incredibly defined use cases for the small areas that we're building, that's on purpose. Like the reality is, if you are using these tools, and you don't think that you can take basically AI and apply it to X industry and transform the entire industry, I don't think you're thinking ambitiously enough, right? And I think it's really hard because these models can't just one‑shot all of these really complex legal tasks, or in these other domains like tax and other professional services. And so what you have to do is you have to build a platform that is kind of constantly expanding and constantly collapsing. And so what I mean by that is you need to build specific features and maybe agentic workflows, et cetera, that can do parts of a task. And then you need to combine them all together. So the UI is simple and you don't have this like tentacle monster of a platform.</paragraph>
+  </turn>
+  <turn speaker="Host">
+    <paragraph>When did you realize that that was the—like, I think it's a really elegant framing of product strategy for the company? First implied in it is just like this, you know, and this has been true for you guys from the very beginning. I actually think you were a little bit crazy when you described the level of sophistication of tasks end‑to‑end that Harvey would be able to do. I still feel crazy. But you appear to be more, you know, like you don't look as crazy when you're right. Fair?</paragraph>
+  </turn>
+  <turn speaker="Winston">
+    <paragraph>Right.</paragraph>
+  </turn>
+  <turn speaker="Host">
+    <paragraph>But I remember like a year and a half, two years ago, it was very distinct to me—how much you guys believed in capability improvement. Like, where does that come from? And then also, how do you think about it internally in the company?</paragraph>
+  </turn>
+  <turn speaker="Winston">
+    <paragraph>Yeah, so where does it come from using the tools? I mean, I think I have been blown away by the amount of kind of C‑suite folks, etc., that haven't actually spent that much time using AI. And the big moment for me was just the jump between GPT‑3 and GPT‑4. Like, when we got access to GPT‑4, I went into my room, I think for just 24 hours straight, and tried to do every single thing that I couldn't do with GPT‑3, or I had to very much brute force and, like, wasn’t getting any efficiency gains from, and tried to do it with GPT‑4. It didn't do all of them, but the improvement was crazy, right? And no one was talking about it. And I found that something that also was very weird is I would show GPT‑3 and GPT‑4 to a bunch of my friends, and they would try to get it to do one thing. It didn't do the thing perfectly, and then they'd just stop, right? And so it seems like there was this large gap between, “I log into ChatGPT, or I just use GPT‑4 from an API, or whatever it is, and I try something a couple times,” versus “I'm going to sit there and just hammer on this until it works,” right? And I think if you do that enough, you get the intuition for where things are going and how much better they can get. How do we do that from a product standpoint? You can kind of think about, if you go back to that expand and collapse as like two general themes, you need to build productivity tools. And what I mean by this is things that are useful for the highest amount of seats, right? And then you also need to build things that are streamlined vertical workflows from start to finish, right? And what you can do is you can take those streamlined vertical workflows, and you can chain them together to do more increasingly powerful things, right? And so that's kind of how we think about it internally at the company: you know, there's a bunch of bells and whistles and things to add in terms of like sharing, collaboration, things like that. But you also just can basically build certain specific features that will do something from start to finish. Like, I upload all my documents and I target companies’ documents and it'll tell me in 72 countries where I need to file antitrust and what do I need to file and what other information do I need? And you can take pieces from that and add it to another part of a project.</paragraph>
+  </turn>
+  <turn speaker="Host">
+    <paragraph>How do you organize that effort at Harvey? Because it's, you know, like I think you have a very special instinct and commitment to going on the AI bender, I suppose, to like figure out what to have. It's gonna be a long bender.</paragraph>
+  </turn>
+  <turn speaker="Winston">
+    <paragraph>Yeah, long— you know, multi‑year bender, but you know, one day at a time to develop intuition for, you know, what the models are capable of doing with this like expansion, workflows, manipulation, assembly process. I imagine that it's really hard to find all of that in a single person—a single person that understands the research, the engineering, the domain, the data available, and interacting with users. So, like, how do you do that across teams?</paragraph>
+  </turn>
+  <turn speaker="Winston">
+    <paragraph>Yeah, so I think we're starting to get better at it. And the thing that we're starting to land on is basically identifying these systems as what we're calling “AI patterns.” So these are the 30–50 things that we need to build that will be integrated into all of these different pieces of the product, right? So I'll give you an example of this: if you build an AI system that is really good at case law research, that can go into a motion for summary judgment, that can go into a billion different types of litigation use cases, right? It doesn't do that use case from start to finish, but you can add that on top. And so what we've been doing is we basically have teams that work on building these patterns and then teams that are kind of implementing them across the entire platform. And that has been working really well. It is definitely a work in progress. I think the other interesting piece of this is we have a lot of lawyers on our staff, right? And we're gonna do this also in the other verticals that we're going into. And the domain experts are very helpful for basically two main reasons. One is as design partners—they're very good at saying, actually, this is what we need to teach the models how to do; this is the step‑by‑step thinking we need to do; this is the output that the user wants, et cetera. And then the second piece, which is really hard, is evaluation. And so most benchmarks are completely useless for us. And so we'll get a model—someone will give us early access to a model and they'll say it's way better on all of these benchmarks—and we'll respond, “It actually isn't. It's not as useful for us as a different checkpoint or something like that.” And the reality is you have to hire very good lawyers who can actually evaluate these systems—and the same within tax and these other areas. And they can't be too junior because if they were too junior and they were able to evaluate it, they would be senior, right? And so I think the intertwining of the domain experts into the actual product sequence and development, and then evaluation at the end state, is very hard. And it's something we're constantly working on.</paragraph>
+  </turn>
+  <turn speaker="Host">
+    <paragraph>What is the end‑to‑end task you're most excited about that you think Harvey will be able to do this year?</paragraph>
+  </turn>
+  <turn speaker="Winston">
+    <paragraph>Yeah, filing an S4, I think, is something that is... The reason I like that process is it is a combination of external data, internal data, and a million steps, right? And I think of workflows as basically a bunch of agentic systems that need to combine together, right? And if you think about knowledge work, professional services, legal—honestly, any swath of that—what you are doing is manipulating things based off of your internal context, external context—whether that's external data, whether that's data from whoever your customer is, your client is, etc. And then the process of this is how you do an LBO. This is how you do side letter compliance. And then there's another step of that, which is, “This is how you do side letter compliance for this particular private equity firm.” Right? This is market for this particular clause. And the more complicated the workflow is, the more you have to combine all of those different elements together.</paragraph>
+  </turn>
+  <turn speaker="Host">
+    <paragraph>When you think about having these very senior lawyers internally at Harvey doing evaluation, I imagine another piece of what is important there is the experience that you had with your friends looking at these models—like, you don't get that many shots on goal, right? It works or it doesn't. The legal profession, especially more senior, more prestigious lawyers, you know, billable hour rates are very high. And the expectation of quality from, let's say, an associate or a model is very high. How did you go about building that trust? Because you, like, you didn't start at the capabilities you have today.</paragraph>
+  </turn>
+  <turn speaker="Winston">
+    <paragraph>Yeah, I'll start from one kind of high‑level distinction between two pieces. So if you go back to the productivity versus specific specialized output, right? On the productivity side, the minimum viable quality of that output can be lower because you're selling seats. And at the end of the day, there are multiple people reviewing it, right? And so what you want to do in that state is just “show your work.” Like that is the most important thing. You want to mimic exactly how a senior associate reviews the work of a junior associate. So you say, “This is why I did this. This is the information that I pulled. And here's an inline citation to the literal sentence that I pulled it from.” Is this correct or not? Make it cheap to check—and partially correct is still useful.</paragraph>
+  </turn>
+  <turn speaker="Host">
+    <paragraph>Yes, exactly. And because, you know, a lot of how these law firms work—and again, the Big Four as well—is the junior produces some sort of output; the mid‑level associate reviews that; then the senior level associate reviews that; then the partner reviews that; and then it goes to the client. Right? And so you get a structured pyramid of hierarchical review. Now let's go to the specialized system. The specialized system, at the end of the day, you're actually trying to produce that output from start to finish, right? So the minimum viable quality on that is much higher, but it's also easier to get higher because you are trying to build systems that just produce the same output and do the same tasks from start to finish, kind of like a specialist. It's much more scoped. And evaluation is much easier, right? Like how do you do evaluation on Copilot or Enterprise GPT? That is very difficult.</paragraph>
+  </turn>
+  <turn speaker="Winston">
+    <paragraph>It is much easier to do evaluation if you can do it at each step and make sure that, recursively, that step was done correctly.</paragraph>
+  </turn>
+  <turn speaker="Host">
+    <paragraph>OK, so there are different expectations for different pieces of the Harvey product. They're still conservative customers, right? So one of the things that was surprising to me in early 2024 was the set of people you decided to work with first—firms like A&O, PwC, high‑quality brands that were generally larger. There's been, I think, a decade of technology investing where the expectation is that if you start with the mid‑market, you start with your friends and startups because it's easier. The requirements are lower; they're willing to take risks. So why do the opposite here?</paragraph>
+  </turn>
+  <turn speaker="Winston">
+    <paragraph>Yeah. So I think that if you are—going back to what I said at the beginning, that ambition should be “take X industry, apply AI to it”—if you are doing that, you need to partner with that industry. And I think you also need to make sure that your brand and what you're building actually makes sense to what they care about. I'll give you an example as a reference point. A&O Sherman is almost 100 years old, and they became famous basically advising on the abdication of, I think, King Edward VII from the throne.</paragraph>
+  </turn>
+  <turn speaker="Host">
+    <paragraph>Okay. Good trivia. My point is these firms are incredibly old—they have a long, prestigious history. And so in order to work with them, you have to partner with them and say, “These are the different workflows that we're going to start building with you; use us as design partners.” And you also need to build a brand around that. So not only is it about working with those higher‑tier firms, but you also want to work with the data providers that are really important. For example, Lexus is involved in this round and we're really partnering with them to bring a lot of the goodwill and trust they have into the industry, combining that with RAI as well. And so if you can show that you're working with the industry and gain the trust from the folks seen as the top in that field, it's much easier to work with the rest of the industry. We thought that was very important. We even considered a self‑serve model or PLG, but eventually you have to get the trust of the industry—and the best way to do that is to go after the hardest people first.</paragraph>
+  </turn>
+  <turn speaker="Winston">
+    <paragraph>Yeah, I think there's perhaps an opportunity in AI—we'll see if this is true. You're already continually collapsing and trying to simplify the experience of using Harvey, right? And this has been nearly impossible in software to date. One of the reasons people would start with SMB or mid‑market is they'd be like, “Well, once it becomes an enterprise product, we will never have the simplicity required to serve other customers. The training cost of implementing that technology is going to be impossible; no one will buy it.”</paragraph>
+  </turn>
+  <turn speaker="Host">
+    <paragraph>Yeah, exactly. But I think that because of a bunch of factors—maybe building UX ends up being cheaper in the future than in the past—and you're also building a muscle as a company that others are not encouraged to have, in terms of constant simplification. I mean, the thing that these models are incredible at is orchestration. So if you're thinking about how to constantly collapse the UI, here’s an example: you can build a bunch of different workflows that deal with SPAs (Share Purchase Agreements). One workflow extracts the reps and warranties from the agreement; another turns them into a complex summary; another handles the closing conditions, and so on. You can build those separately—because maybe your system can't handle everything at once—and then simply make it so that whenever a user uploads an SPA, Harvey asks, “Hey, would you like to do one of these seven things?” And so you collapse it back into a UI that’s actually very simple. After all, the UI for professional services is essentially like email—simple, even if it takes a bit of learning.</paragraph>
+  </turn>
+  <turn speaker="Winston">
+    <paragraph>Yeah, that's exactly what we have. It's awful and takes forever to learn how to use, but it's something we’re working on.</paragraph>
+  </turn>
+  <turn speaker="Host">
+    <paragraph>I know how to use email!</paragraph>
+  </turn>
+  <turn speaker="Winston">
+    <paragraph>Yeah, it's still hard, but I think it takes a particular attitude—to play with GPT‑3 as a young lawyer and be like, “We should do this,” rather than be threatened by it.</paragraph>
+  </turn>
+  <turn speaker="Host">
+    <paragraph>You guys now serve more than 250 clients and have over $50 million ARR. People are obviously adopting it—I look at the weekly user charts. What is the reaction you get from users, and how do you talk to them about the impact of automation?</paragraph>
+  </turn>
+  <turn speaker="Winston">
+    <paragraph>It changed massively over time. I think there was a lot of fear of automation when there was a lot of press, but in reality, they haven't used it much. I’m more bullish on model capabilities and just capabilities in general on the application side. So yes, I still think I'm crazy—but we're going in that direction.</paragraph>
+  </turn>
+  <turn speaker="Winston">
+    <paragraph>Yeah, I still think I'm crazy. But one thing that I think not just our customers are realizing, but many people who haven’t worked in legal or professional services are noticing, is that these industries are very messy. It’s not as simple as, “Oh, I know how to draft an SPA. I'm a lawyer—I'm done.” Or, “I'll just grab all the legal data on earth, train on top of it, and the model works somehow.” That's not how these industries work. Once lawyers use the product, they say, “Wow, this is really good. I can see this getting even better,” especially if they used Harvey a year ago compared to now. It does seem like no matter what, we’re going to need a lot of lawyer collaboration in the process, and they're happy about that. Junior folks are especially excited, because in legal and professional services, you often end up doing repetitive tasks for years—like reviewing documents in discovery or data rooms—before you can work on high-level strategic tasks. And these tools let you do that faster, compressing the timeline to reach more strategic work earlier in your career. So it's not job displacement; it's task displacement, which is a crucial distinction because eliminating those tasks doesn't mean the industry falls apart—it evolves.</paragraph>
+  </turn>
+  <turn speaker="Host">
+    <paragraph>My younger sister, Camilla, is an engineer at an AI and robotics company and still wants to go to law school. What advice would you have for somebody who wants to be a star lawyer 5 (or even 10) years from now?</paragraph>
+  </turn>
+  <turn speaker="Winston">
+    <paragraph>Yeah, I would actually have given the same advice 10 years from now as I would have before starting this startup: spend even more time on it. The most important thing in legal and professional services is how well you can deal with client requests—how you navigate and figure out what is actually best for the client. So get as much hands‑on experience as you can, even if it’s not at the most prestigious firm. It might not be a mega merger or a $100 billion deal, but that hands‑on experience is the key skill that will matter over time.</paragraph>
+  </turn>
+  <turn speaker="Host">
+    <paragraph>What do you think happens to the structure of law firms that have been built on the backs of junior associates doing these repetitive tasks?</paragraph>
+  </turn>
+  <turn speaker="Winston">
+    <paragraph>Yeah. I think there are a bunch of ways this can evolve. The most likely scenario is that the billable hour won’t just completely disappear. Instead, a lot of tasks that AI can automate—with a lawyer in the loop—will become more of a fixed‑fee model, while high‑level advisory work will remain billable—perhaps even more expensive. There’s an argument that specialists at law firms, with experience in complex mergers in specific industries, should have rates far higher than junior associates. My point is that specialization in professional services is incredibly valuable and will be even more so over time. We’re already seeing law firms take their domain expertise, turn it into software, and work with firms to build specialized systems in Harvey that they can then sell to their clients. It’s a completely new business model.</paragraph>
+  </turn>
+  <turn speaker="Host">
+    <paragraph>How does that happen? Who drives that at one of your partner firms? What's the incentive?</paragraph>
+  </turn>
+  <turn speaker="Winston">
+    <paragraph>It’s massively based on the law firm. You’ll find a couple of partners who think this is the future, and they’ll rally the entire firm around it. That’s what we’ve seen in the last three to six months. They provide the domain expertise, and we translate that expertise into technology. The incentive for them is that law firms do a lot of legal work at a loss just to secure a big deal—often working for private equity at massive discounts or even at a loss. These systems allow them to compete in areas where they’d otherwise struggle, giving them software margins and enabling them to take on more strategic work later.</paragraph>
+  </turn>
+  <turn speaker="Host">
+    <paragraph>Afterwards.</paragraph>
+  </turn>
+  <turn speaker="Winston">
+    <paragraph>Yeah, that feels analogous to the client service work in an investment bank on large transactions that really matter.</paragraph>
+  </turn>
+  <turn speaker="Host">
+    <paragraph>Yeah, exactly. You see this already, and it grows over time. The legal industry is one of reasoning. How much has the growth of models and the interest in developing models that scale test‑time inference impacted you guys?</paragraph>
+  </turn>
+  <turn speaker="Winston">
+    <paragraph>Massively, in a good way. The best way to think about it is: if you're building a system where you break down every problem into sub‑problems—because the models can’t quite do it all at once—that unlocks different pieces. For example, with our antitrust case, the first step was taking the target and acquirer financials to say what you need to file in various countries. The next step was to actually do the filings. We had trouble with that before, but now with reasoning models, we can unlock those steps. As models improve, our ability to push the cutting edge increases. Plus, as costs go down, we can optimize for quality even more across our user base.</paragraph>
+  </turn>
+  <turn speaker="Host">
+    <paragraph>How do you think about domains beyond legal? You’ve announced research, work, tax, and audit now. What makes this the right time to expand?</paragraph>
+  </turn>
+  <turn speaker="Winston">
+    <paragraph>Well, legal is just the tip of the spear. Many of the workflows we build for legal can be adapted to other industries. For example, tax diligence, commercial diligence, and financial diligence have similar high‑level problems—applying rules to documents. We’ve learned a lot from legal, and we can improve and apply those lessons to tax, deals, and other areas.</paragraph>
+  </turn>
+  <turn speaker="Host">
+    <paragraph>It feels unique in terms of the product effort at Harvey. When you think about your team, does your new engineering hire eventually understand tax diligence? How do you decide who is the right next person to add to Harvey?</paragraph>
+  </turn>
+  <turn speaker="Winston">
+    <paragraph>We're working on it. Yes, we are hiring—a ton, in fact. One thing we did right is maintaining a high level of respect. Many engineers haven't worked in legal or professional services before. We held talks about complex private deals, and the engineers were genuinely impressed by the depth of expertise. Even if they haven’t done tax diligence before, they learn quickly. We also have team activities—like watching seasons of Suits—to get context. Ultimately, we hire for agency: we look for smart, hungry people who care deeply about what they're doing and are decisive about shipping and iterating on ideas, rather than relying solely on prior domain experience.</paragraph>
+  </turn>
+  <turn speaker="Host">
+    <paragraph>Yeah, I think that's true. Even among founders, trying to predict trends beyond a couple of months is very challenging. The ones who succeed are those who are obsessed—not just with their own problem, but also with what’s happening with all the model providers.</paragraph>
+  </turn>
+  <turn speaker="Winston">
+    <paragraph>You have now been a founder for two and a half years, right?</paragraph>
+  </turn>
+  <turn speaker="Host">
+    <paragraph>Yeah. I'm sure that's been a learning experience. You’ve got a focus on agency. What did you get wrong?</paragraph>
+  </turn>
+  <turn speaker="Winston">
+    <paragraph>Yeah, I don’t think we have 12 hours to go over everything. But if I had to pick one thing I got wrong, it was figuring out when to scale myself. I tend to do every role myself for a while before hiring out, and almost all of my mishires were because I didn’t fully understand the role. There’s a hands‑on piece, but you can’t scale a company by being hands‑on in everything all the time. I also didn’t spend enough time transitioning from a 40‑person startup where everyone had direct context to a larger organization where I couldn’t be involved in every detail. You have to learn to share context and uplevel the team while still making quick decisions based on your gut, which comes from absorbing a lot of information constantly.</paragraph>
+  </turn>
+  <turn speaker="Host">
+    <paragraph>So when you agreed to do this podcast, you said, “Okay, Sarah, we're going to talk about the company and not me.”</paragraph>
+  </turn>
+  <turn speaker="Winston">
+    <paragraph>Yeah, and I lied a little. I’m going to ask you just a couple of things. One is: you work continuously. You clearly believe there's something important to build here—beyond everything else you do, maybe even working out. Where does that drive come from?</paragraph>
+  </turn>
+  <turn speaker="Host">
+    <paragraph>Yeah, that's basically it.</paragraph>
+  </turn>
+  <turn speaker="Winston">
+    <paragraph>Where does the drive come from? This is the most fun thing ever. I started this company at 27, and nothing in the 27 years before has been as fun as this. The energy from things moving so quickly and having the agency to come up with an idea and see it built is crazy—and addicting. I think many successful people in this space just have that natural desire to know what's happening, to have leverage, and to see a fast impact cycle.</paragraph>
+  </turn>
+  <turn speaker="Host">
+    <paragraph>Is that the expectation you have for everyone at Harvey, culturally?</paragraph>
+  </turn>
+  <turn speaker="Winston">
+    <paragraph>Yeah, good question. The expectation at Harvey comes down to a mantra we adopted from Kobe Bryant: “Job's Not Finished.” I remember he was asked in an interview how he felt when his team was up 2–0 or 3–0, and he said, “I feel good—but the job's not finished.” That mentality—that the moment isn’t over and you have to keep giving your all—is what we expect from everyone. It’s about recognizing that we’re on an incredibly compressed timeline for all of us, and that there will be insane expectations. You have to trust yourself to keep raising the bar, even when you’re not being tapped on the shoulder constantly.</paragraph>
+  </turn>
+  <turn speaker="Host">
+    <paragraph>That really resonates with me. It’s like you can’t sit this one out—if you have this one chance, you have to fully play. That’s an amazing signal for someone joining a company.</paragraph>
+  </turn>
+  <turn speaker="Winston">
+    <paragraph>Exactly. And another thing I mentioned earlier—about not being a research scientist—it’s true. There’s some imposter syndrome in this very technical field. The best way I’ve handled that is by spending time with people I really respect in the industry. Their specific feedback and the way they share their intuition has helped me absorb that knowledge until it becomes part of my own intuition.</paragraph>
+  </turn>
+  <turn speaker="Host">
+    <paragraph>Yeah, I get comfortable with it mostly from the outcomes: companies are working, users are engaged, and the repeated patterns confirm that your intuition is right. That pragmatic feedback loop is invaluable.</paragraph>
+  </turn>
+  <turn speaker="Winston">
+    <paragraph>Exactly.</paragraph>
+  </turn>
+  <turn speaker="Host">
+    <paragraph>One thing we experienced was, early last year, customers were having usage issues—they got blocked or didn’t know how to use the product. Then, about six or seven months in, everything did a complete 180. We took several bets on new product features—and on the models getting better—and it worked. As you make these bets and see them pay off, you gain more confidence (hopefully not too much, but a bit more).</paragraph>
+  </turn>
+  <turn speaker="Host">
+    <paragraph>So you're saying that you and the people at Harvey feel the AGI “just enough”—not too much.</paragraph>
+  </turn>
+  <turn speaker="Winston">
+    <paragraph>Just enough—exactly. Not too much.</paragraph>
+  </turn>
+  <turn speaker="Host">
+    <paragraph>Yeah, it's not clear what “too much” even means at this point.</paragraph>
+  </turn>
+  <turn speaker="Winston">
+    <paragraph>Yeah, I don't think there's a limit yet. You guys have been on the right side of a raging debate in the investing and tech community for a long time—about whether there is value in the application layer. It’s pretty clear there is now. So what advice would you give founders and tech business people thinking about what application to build?</paragraph>
+  </turn>
+  <turn speaker="Host">
+    <paragraph>One thing I look at is this: consider the industry and the task—basically, how expensive is the token? Look at something like a share purchase agreement or a merger agreement. The cost to produce each word in a 50‑page document can be incredibly high. I’d say don’t be discouraged if the industry has never been touched by tech before or if you’re not an expert. Talk to people, ask lots of questions, and really see what they do. Sometimes you have to leave your comfort zone—even if that means stepping out of Silicon Valley. Harvey is in SF, New York, and London, but there are so many industries out there. Explore them, and you’ll be inspired by the possibilities.</paragraph>
+  </turn>
+  <turn speaker="Winston">
+    <paragraph>Yeah, I have friends in product, engineering, and business who start ideating in their underwear at home. But real insights come from seeing the problem in real life. So, go hang out with people in the industry—even if they’re outside your usual network.</paragraph>
+  </turn>
+  <turn speaker="Host">
+    <paragraph>Is there anything that has really surprised you in the company over the last couple of months?</paragraph>
+  </turn>
+  <turn speaker="Winston">
+    <paragraph>Yeah. There are quite a few people at the company without traditional management experience whom I placed in management roles—and the improvement has been insane. It’s surprised not just me, but our leadership team and our investors. I'm incredibly proud of that. I’ve learned that sometimes taking a bet on someone who may not have the perfect resume but shows true ownership and care can work out even better than expected.</paragraph>
+  </turn>
+  <turn speaker="Winston">
+    <paragraph>If I were to pick the top signals for leadership potential, I’d say it’s care, ownership, and the willingness to not make excuses—admitting when you got something wrong and wanting to fix it. Some folks will even come up to me without asking for positive feedback, just saying, “What do I need to improve?” That level of self-reflection is a massive signal.</paragraph>
+  </turn>
+  <turn speaker="Host">
+    <paragraph>OK, last question for you. If you look outside your immediate ecosystem of legal and professional services—say, looking at professional services in general—what’s the biggest change you think will happen this year?</paragraph>
+  </turn>
+  <turn speaker="Winston">
+    <paragraph>I think we’ll see work completion done in very sophisticated ways—whether in medicine, coding, or other areas. It’ll be like a new version of the ChatGPT moment, but specialized. Imagine a doctor or a researcher encountering something so impressive that, even though they’ve seen ChatGPT before, they’re stunned by how tailored it is to their field. In other words, these systems will get to the point where they perform tasks in ways that are incredibly impressive to verticalized, specialized professionals.</paragraph>
+  </turn>
+  <turn speaker="Host">
+    <paragraph>I agree. When you consider industries that Silicon Valley hasn’t traditionally focused on, like healthcare or certain regulated fields, people might say, “The customer won’t buy; there’s too much regulation.” But our experience is that the ROI is there. We’re going to see an accelerating pace of people figuring out how to shape AI capabilities for task completion in ways that add real value.</paragraph>
+  </turn>
+  <turn speaker="Winston">
+    <paragraph>At least that’s been my experience. Initially, people might be confused and claim they don’t want it, but when they actually use these tools, they realize the value. Especially in conservative professions like law or medicine, which haven’t changed in a long time, these systems give them a way to cut through layers of outdated processes.</paragraph>
+  </turn>
+  <turn speaker="Host">
+    <paragraph>Awesome. This has been great. Thanks, Winston.</paragraph>
+  </turn>
+  <turn speaker="Winston">
+    <paragraph>Yeah, thank you.</paragraph>
+  </turn>
+</transcript>

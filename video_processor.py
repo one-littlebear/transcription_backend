@@ -47,6 +47,7 @@ class VideoProcessor:
         """Ensure required containers exist."""
         containers = {
             'videos': 'video-uploads',
+            'audio': 'audio-uploads',  # New container for audio files
             'transcripts': 'transcriptions'
         }
         
@@ -264,6 +265,116 @@ class VideoProcessor:
         """List all MP4 files in the videos container."""
         container_client = self.blob_service_client.get_container_client(self.containers['videos'])
         return [blob.name for blob in container_client.list_blobs() if blob.name.lower().endswith('.mp4')]
+
+    def list_files(self) -> List[str]:
+        """List all available videos and audio files in Azure Storage"""
+        try:
+            # List videos
+            video_container = self.blob_service_client.get_container_client(self.containers['videos'])
+            videos = [blob.name for blob in video_container.list_blobs()]
+            
+            # List audio files
+            audio_container = self.blob_service_client.get_container_client(self.containers['audio'])
+            audio_files = [blob.name for blob in audio_container.list_blobs()]
+            
+            return videos + audio_files
+        except Exception as e:
+            logger.error(f"Error listing files: {e}")
+            return []
+
+    async def process_audio(self, audio_name: str, client: OpenAI) -> bool:
+        """Process a single audio file from Azure Storage."""
+        temp_files = []
+        try:
+            start_time = time.time()
+            
+            # Setup paths
+            temp_dir = Path("temp")
+            temp_dir.mkdir(exist_ok=True)
+            temp_audio_path = temp_dir / audio_name
+            temp_files.append(temp_audio_path)
+
+            # Download audio
+            download_start = time.time()
+            logger.info(f"Starting download of audio: {audio_name}")
+            blob_client = self.blob_service_client.get_container_client(
+                self.containers['audio']).get_blob_client(audio_name)
+            
+            with open(temp_audio_path, "wb") as audio_file:
+                download_stream = await asyncio.get_event_loop().run_in_executor(
+                    self.executor,
+                    blob_client.download_blob
+                )
+                await asyncio.get_event_loop().run_in_executor(
+                    self.executor,
+                    lambda: download_stream.readinto(audio_file)
+                )
+            logger.info(f"Download took {time.time() - download_start:.2f} seconds")
+
+            # Split audio into chunks
+            split_start = time.time()
+            audio = AudioSegment.from_mp3(temp_audio_path)
+            chunk_length = 5 * 60 * 1000  # 5 minutes
+            chunks = []
+            
+            # Create chunks
+            for i in range(0, len(audio), chunk_length):
+                chunk_path = temp_dir / f"chunk_{i//chunk_length}.mp3"
+                audio[i:i + chunk_length].export(chunk_path, format="mp3")
+                chunks.append(chunk_path)
+                temp_files.append(chunk_path)
+            
+            logger.info(f"Split into {len(chunks)} chunks")
+
+            # Transcribe chunks in parallel
+            sem = asyncio.Semaphore(10)
+            
+            async def transcribe_chunk(chunk_path):
+                async with sem:
+                    return await self.transcribe_with_retry(chunk_path, client)
+
+            # Create and run tasks in parallel
+            transcribe_tasks = [transcribe_chunk(chunk) for chunk in chunks]
+            logger.info(f"Starting parallel transcription of {len(chunks)} chunks")
+            results = await asyncio.gather(*transcribe_tasks)
+            logger.info("Completed all transcriptions")
+            full_transcript = [t for t in results if t is not None]
+
+            # Create and upload document
+            if full_transcript:
+                doc = Document()
+                text = '\n'.join(full_transcript)
+                sentences = split_into_sentences(text)
+                for sentence in sentences:
+                    doc.add_paragraph(sentence)
+
+                output_filename = f"{audio_name}_transcript.docx"
+                doc.save(str(temp_dir / output_filename))
+                
+                with open(temp_dir / output_filename, 'rb') as doc_file:
+                    await asyncio.get_event_loop().run_in_executor(
+                        self.executor,
+                        lambda: self.blob_service_client.get_container_client(
+                            self.containers['transcripts']
+                        ).upload_blob(output_filename, doc_file, overwrite=True)
+                    )
+
+            # Cleanup
+            for temp_file in temp_files:
+                if temp_file.exists():
+                    temp_file.unlink()
+
+            total_time = time.time() - start_time
+            logger.info(f"Total processing time: {total_time:.2f} seconds")
+            return True
+
+        except Exception as e:
+            logger.error(f"Error processing audio: {e}")
+            # Cleanup on error
+            for temp_file in temp_files:
+                if isinstance(temp_file, Path) and temp_file.exists():
+                    temp_file.unlink()
+            return False
 
 # Add this test section at the end of the file
 if __name__ == "__main__":

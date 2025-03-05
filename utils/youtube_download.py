@@ -11,12 +11,25 @@ def clean_title(title):
     Returns:
         str: Cleaned up title
     """
-    # Remove emojis and special characters
-    title = re.sub(r'[^\w\s-]', '', title)
+    # First, handle non-ASCII characters and emojis
+    title = title.encode('ascii', 'ignore').decode('ascii')
+    
+    # Keep only alphanumeric characters, spaces, and some basic punctuation
+    title = re.sub(r'[^a-zA-Z0-9\s\-_]', '', title)
+    
     # Replace multiple spaces with single space and strip
     title = ' '.join(title.split())
+    
     # Replace spaces with underscores
     title = title.replace(' ', '_')
+    
+    # Ensure the title is not empty and has a reasonable length
+    if not title:
+        title = "untitled_video"
+    
+    # Limit length to avoid potential filesystem issues
+    title = title[:100]
+    
     return title
 
 def download_video(url, output_path="videos"):
@@ -65,6 +78,6 @@ def download_video(url, output_path="videos"):
 
 if __name__ == "__main__":
     # Example usage
-    video_url = "https://www.youtube.com/watch?v=Bws2iIBjWSk"
+    video_url = "https://www.youtube.com/watch?v=ILJs7Yth0d8"
     download_video(video_url)
-    pass
+    #print(clean_title("No Priors Ep. 101 ｜ With Harvey CEO and Co-Founder Winston Weinberg"))

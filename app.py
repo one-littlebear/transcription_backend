@@ -27,6 +27,7 @@ logger = logging.getLogger(__name__)
 class ProcessingStatus(BaseModel):
     status: str
     message: str
+    file_type: str = "video"  # Add file type to track whether it's video or audio
 
 class TaskManager:
     def __init__(self):
@@ -132,49 +133,83 @@ async def list_videos():
         logger.error(f"Error listing videos: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
-@app.post("/process/{video_name}", response_model=ProcessingStatus)
-async def process_video_endpoint(video_name: str, background_tasks: BackgroundTasks):
-    """Start processing a video"""
+@app.post("/process/{file_name}", response_model=ProcessingStatus)
+async def process_file_endpoint(file_name: str, background_tasks: BackgroundTasks):
+    """Start processing a video or audio file"""
     try:
-        # Check if video exists
-        if video_name not in video_processor.list_videos():
-            raise HTTPException(status_code=404, detail="Video not found")
+        # Check if file exists
+        if file_name not in video_processor.list_files():
+            raise HTTPException(status_code=404, detail="File not found")
 
-        # Check if video is already being processed
-        can_start = await task_manager.start_task(video_name)
+        # Determine file type
+        file_type = get_file_type(file_name)
+
+        # Check if file is already being processed
+        can_start = await task_manager.start_task(file_name)
         if not can_start:
-            status = task_manager.get_task_status(video_name)
+            status = task_manager.get_task_status(file_name)
             if status["status"] == "processing":
                 return {
                     "status": "processing",
-                    "message": f"Video {video_name} is already being processed"
+                    "message": f"{file_type.capitalize()} {file_name} is already being processed",
+                    "file_type": file_type
                 }
             elif status["status"] == "completed":
                 return {
                     "status": "completed",
-                    "message": f"Video {video_name} has already been processed"
+                    "message": f"{file_type.capitalize()} {file_name} has already been processed",
+                    "file_type": file_type
                 }
 
         # Initialize OpenAI client
         client = OpenAI()
         
         # Add processing to background tasks
-        background_tasks.add_task(process_video_task, video_name, client)
+        if file_type == 'audio':
+            background_tasks.add_task(video_processor.process_audio, file_name, client)
+        else:
+            background_tasks.add_task(process_video_task, file_name, client)
         
         return {
             "status": "processing",
-            "message": f"Processing of {video_name} started"
+            "message": f"Processing of {file_name} started",
+            "file_type": file_type
         }
     
     except Exception as e:
-        logger.error(f"Error initiating video processing: {e}")
+        logger.error(f"Error initiating file processing: {e}")
         raise HTTPException(status_code=500, detail=str(e))
+
+# Add supported file types
+SUPPORTED_FILE_TYPES = {
+    'video': ['.mp4', '.avi', '.mov', '.mkv'],
+    'audio': ['.mp3', '.wav']
+}
+
+def get_file_type(filename: str) -> str:
+    """Determine if the file is a video or audio file based on extension"""
+    ext = Path(filename).suffix.lower()
+    if ext in SUPPORTED_FILE_TYPES['video']:
+        return 'video'
+    elif ext in SUPPORTED_FILE_TYPES['audio']:
+        return 'audio'
+    else:
+        raise ValueError(f"Unsupported file type: {ext}")
 
 @app.post("/upload/request", response_model=UploadResponse)
 async def request_upload(filename: str):
-    """Get a pre-signed URL for uploading a video file"""
+    """Get a pre-signed URL for uploading a video or audio file"""
     try:
+        # Validate file type
+        file_type = get_file_type(filename)
+        if file_type not in ['video', 'audio']:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Unsupported file type. Supported types: {SUPPORTED_FILE_TYPES}"
+            )
         return generate_sas_token(filename)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
