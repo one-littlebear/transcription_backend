@@ -183,31 +183,33 @@ async def process_file_endpoint(file_name: str, background_tasks: BackgroundTask
 # Add supported file types
 SUPPORTED_FILE_TYPES = {
     'video': ['.mp4', '.avi', '.mov', '.mkv'],
-    'audio': ['.mp3', '.wav', '.m4a', '.aac', '.ogg']
+    'audio': ['.mp3', '.wav']
 }
 
 def get_file_type(filename: str) -> str:
     """Determine if the file is a video or audio file based on extension"""
     ext = Path(filename).suffix.lower()
-    # First check if it's a known audio format
-    if ext in SUPPORTED_FILE_TYPES['audio']:
-        return 'audio'
-    # Then check if it's a known video format
-    elif ext in SUPPORTED_FILE_TYPES['video']:
+    if ext in SUPPORTED_FILE_TYPES['video']:
         return 'video'
+    elif ext in SUPPORTED_FILE_TYPES['audio']:
+        return 'audio'
     else:
-        # For unknown extensions, accept them but warn
-        logger.warning(f"Unknown file extension: {ext}. Will attempt to process based on content.")
-        return 'video'  # Default to video processing which will auto-detect content type
+        raise ValueError(f"Unsupported file type: {ext}")
 
 @app.post("/upload/request", response_model=UploadResponse)
 async def request_upload(filename: str):
     """Get a pre-signed URL for uploading a video or audio file"""
     try:
-        # Get file type but don't reject unknown extensions
+        # Validate file type
         file_type = get_file_type(filename)
-        logger.info(f"Processing file {filename} as {file_type}")
+        if file_type not in ['video', 'audio']:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Unsupported file type. Supported types: {SUPPORTED_FILE_TYPES}"
+            )
         return generate_sas_token(filename)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
