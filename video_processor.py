@@ -128,13 +128,26 @@ class VideoProcessor:
                 )
             logger.info(f"Download took {time.time() - download_start:.2f} seconds")
 
-            # Extract audio
-            extract_start = time.time()
-            logger.info("Starting audio extraction")
-            video = VideoFileClip(str(temp_video_path))
-            video.audio.write_audiofile(str(temp_audio_path))
-            video.close()
-            logger.info(f"Audio extraction took {time.time() - extract_start:.2f} seconds")
+            # Check if the file is actually an audio file
+            try:
+                video = VideoFileClip(str(temp_video_path))
+                if video.audio is not None and not hasattr(video, 'size'):
+                    logger.info("File appears to be audio-only. Processing as audio file.")
+                    video.close()
+                    # Move the file to audio processing
+                    return await self.process_audio(video_name, client, temp_video_path)
+                
+                # Extract audio from video
+                logger.info("Starting audio extraction")
+                video.audio.write_audiofile(str(temp_audio_path))
+                video.close()
+                logger.info(f"Audio extraction completed")
+                
+            except Exception as e:
+                logger.error(f"Error during video processing: {e}")
+                # Try processing as audio file
+                logger.info("Attempting to process as audio file")
+                return await self.process_audio(video_name, client, temp_video_path)
 
             # Split and transcribe
             split_start = time.time()
@@ -282,7 +295,7 @@ class VideoProcessor:
             logger.error(f"Error listing files: {e}")
             return []
 
-    async def process_audio(self, audio_name: str, client: OpenAI) -> bool:
+    async def process_audio(self, audio_name: str, client: OpenAI, existing_file: Path = None) -> bool:
         """Process a single audio file from Azure Storage."""
         temp_files = []
         try:
@@ -291,25 +304,26 @@ class VideoProcessor:
             # Setup paths
             temp_dir = Path("temp")
             temp_dir.mkdir(exist_ok=True)
-            temp_audio_path = temp_dir / audio_name
+            temp_audio_path = temp_dir / audio_name if existing_file is None else existing_file
             temp_files.append(temp_audio_path)
 
-            # Download audio
-            download_start = time.time()
-            logger.info(f"Starting download of audio: {audio_name}")
-            blob_client = self.blob_service_client.get_container_client(
-                self.containers['audio']).get_blob_client(audio_name)
-            
-            with open(temp_audio_path, "wb") as audio_file:
-                download_stream = await asyncio.get_event_loop().run_in_executor(
-                    self.executor,
-                    blob_client.download_blob
-                )
-                await asyncio.get_event_loop().run_in_executor(
-                    self.executor,
-                    lambda: download_stream.readinto(audio_file)
-                )
-            logger.info(f"Download took {time.time() - download_start:.2f} seconds")
+            # Download audio if not already downloaded
+            if existing_file is None:
+                download_start = time.time()
+                logger.info(f"Starting download of audio: {audio_name}")
+                blob_client = self.blob_service_client.get_container_client(
+                    self.containers['audio']).get_blob_client(audio_name)
+                
+                with open(temp_audio_path, "wb") as audio_file:
+                    download_stream = await asyncio.get_event_loop().run_in_executor(
+                        self.executor,
+                        blob_client.download_blob
+                    )
+                    await asyncio.get_event_loop().run_in_executor(
+                        self.executor,
+                        lambda: download_stream.readinto(audio_file)
+                    )
+                logger.info(f"Download took {time.time() - download_start:.2f} seconds")
 
             # Split audio into chunks
             split_start = time.time()
