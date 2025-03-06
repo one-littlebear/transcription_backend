@@ -102,6 +102,18 @@ async def process_video_task(video_name: str, client: OpenAI):
         logger.error(f"Error processing video {video_name}: {e}")
         await task_manager.fail_task(video_name, str(e))
 
+async def process_audio_task(audio_name: str, client: OpenAI):
+    """Background task for processing audio files"""
+    try:
+        success = await video_processor.process_audio(audio_name, client)
+        if success:
+            await task_manager.complete_task(audio_name)
+        else:
+            await task_manager.fail_task(audio_name, "Processing failed")
+    except Exception as e:
+        logger.error(f"Error processing audio {audio_name}: {e}")
+        await task_manager.fail_task(audio_name, str(e))
+
 @app.on_event("startup")
 async def startup_event():
     """Initialize services on startup"""
@@ -166,7 +178,7 @@ async def process_file_endpoint(file_name: str, background_tasks: BackgroundTask
         
         # Add processing to background tasks
         if file_type == 'audio':
-            background_tasks.add_task(video_processor.process_audio, file_name, client)
+            background_tasks.add_task(process_audio_task, file_name, client)
         else:
             background_tasks.add_task(process_video_task, file_name, client)
         
