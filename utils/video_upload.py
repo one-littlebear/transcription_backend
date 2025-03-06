@@ -35,7 +35,7 @@ def clean_filename(filename: str) -> str:
     1. Converting to lowercase
     2. Replacing spaces with underscores
     3. Removing special characters
-    4. Ensuring it ends with .mp4
+    4. Preserving valid video and audio extensions
     """
     # Get the base name and extension
     base_name, ext = os.path.splitext(filename.lower())
@@ -44,10 +44,18 @@ def clean_filename(filename: str) -> str:
     cleaned_name = re.sub(r'[^\w\s-]', '', base_name)  # Remove special chars except spaces and hyphens
     cleaned_name = re.sub(r'[-\s]+', '_', cleaned_name)  # Replace spaces and hyphens with underscore
     
-    # Ensure valid extension
-    valid_extensions = {'.mp4', '.mov', '.avi', '.mkv'}
-    if ext.lower() not in valid_extensions:
-        ext = '.mp4'  # Default to .mp4 if not a valid video extension
+    # Define valid extensions
+    valid_extensions = {
+        'video': {'.mp4', '.mov', '.avi', '.mkv'},
+        'audio': {'.mp3', '.wav'}
+    }
+    
+    # Keep original extension if it's valid, otherwise default to .mp4 for video
+    ext = ext.lower()
+    if ext in valid_extensions['video'] or ext in valid_extensions['audio']:
+        pass  # Keep the original extension
+    else:
+        ext = '.mp4'  # Default to .mp4 only for unrecognized video formats
     
     # Ensure the filename isn't too long (Azure has a 1024 char limit)
     max_length = 100  # Reasonable length for filenames
@@ -56,11 +64,15 @@ def clean_filename(filename: str) -> str:
     
     return f"{cleaned_name}{ext}"
 
-def generate_sas_token(blob_name: str, container_name: str = "video-uploads") -> UploadResponse:
+def generate_sas_token(blob_name: str) -> UploadResponse:
     """Generate a SAS token for client-side upload."""
     try:
         # Clean the blob name first
         cleaned_blob_name = clean_filename(blob_name)
+        
+        # Determine container based on file extension
+        ext = Path(cleaned_blob_name).suffix.lower()
+        container_name = "audio-uploads" if ext in {'.mp3', '.wav'} else "video-uploads"
         
         # Get account details from connection string
         conn_str = os.getenv("AZURE_STORAGE_CONNECTION_STRING")
@@ -100,7 +112,8 @@ def check_file_status(filename: str) -> UploadStatus:
         
         # Check if transcript exists
         transcript_container = blob_service_client.get_container_client("transcriptions")
-        transcript_name = f"{filename}_cleaned.docx"
+        # Use _transcript.docx instead of _cleaned.docx for consistency
+        transcript_name = f"{filename}_transcript.docx"
         
         if any(blob.name == transcript_name for blob in transcript_container.list_blobs()):
             # Get transcript URL with SAS token
@@ -120,9 +133,13 @@ def check_file_status(filename: str) -> UploadStatus:
                 transcript_url=transcript_url
             )
         
-        # Check if video is still in processing
-        video_container = blob_service_client.get_container_client("video-uploads")
-        if any(blob.name == filename for blob in video_container.list_blobs()):
+        # Determine container based on file extension
+        ext = Path(filename).suffix.lower()
+        container_name = "audio-uploads" if ext in {'.mp3', '.wav'} else "video-uploads"
+        
+        # Check if file is still in processing
+        container = blob_service_client.get_container_client(container_name)
+        if any(blob.name == filename for blob in container.list_blobs()):
             return UploadStatus(
                 status="processing",
                 message="File is being processed"
